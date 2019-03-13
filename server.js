@@ -1,13 +1,20 @@
 var express = require('express')
 require('dotenv').config()
 const connectionString = process.env.DATABASE_URL
+var path = require('path')
 const { Pool, Client } = require('pg')
 const pool = new Pool({connectionString: connectionString})
 
 express()
+    .use(express.static(path.join(__dirname, 'public')))
+    .set('views', path.join(__dirname, 'views'))
+    .set('view engine', 'ejs')
     .get('/', (req, res) => {
-        console.log(connectionString)
-        test(res)
+        res.render('pages/index')
+    })
+    .get('/services/getPerson', (req, res) => {
+        getPerson(req.query.id, res)
+        // return json object person
     })
     .listen(8000, () => console.log('Listening on port: 8000'))
 
@@ -17,23 +24,14 @@ function callback(data, res) {
     }
 }
 
-function test(res) {
-    var sql = "SELECT * FROM test";
-
+function getPerson(id, res) {
+    var sql = "SELECT * FROM person_table WHERE person_id=" + id;
     pool.query(sql, function(err, result) {
-        // If an error occurred...
         if (err) {
-            console.log("Error in query: ")
-            console.log(err);
+            console.log("Error in Query" + err)
         }
-
-        // Log this to the console for debugging purposes.
-        console.log("Back from DB with result:");
-        console.log(result.rows);
-        for (var i = 0; i < result.rows.length; i++) {
-            res.write(result.rows[i].name + '</br>')
-        }
+        res.writeHead(200, {"Content-type": "application/json"})
+        res.write(JSON.stringify(result.rows))
         res.end()
-
-    }); 
+    })
 }
